@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Category - Admin Panel</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/admin.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: #0d1117; color: #c9d1d9; padding: 40px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; width: 100%; max-width: 550px; padding: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+    h2 { color: #fff; margin-bottom: 25px; font-size: 1.5rem; }
+    .field { margin-bottom: 20px; }
+    label { display: block; margin-bottom: 8px; color: #8b949e; font-weight: 600; font-size: 0.9rem; }
+    input, textarea { width: 100%; padding: 12px; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; color: #fff; font-size: 0.95rem; outline: none; }
+    input:focus, textarea:focus { border-color: #58a6ff; }
+    .btn-group { display: flex; gap: 15px; margin-top: 25px; }
+    button { background: #238636; color: #fff; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.95rem; }
+    button:hover { background: #2ea043; }
+    .btn-cancel { background: transparent; border: 1px solid #30363d; color: #8b949e; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 0.95rem; text-align: center; }
+    .btn-cancel:hover { background: #21262d; color: #fff; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Add New Category</h2>
+    <div class="field">
+      <label>Category Name *</label>
+      <input type="text" id="catName" placeholder="e.g. Laptops, Smartwatches" required>
+    </div>
+    <div class="field">
+      <label>Description / Subtitle</label>
+      <input type="text" id="catDesc" placeholder="e.g. Explore top-notch computing devices">
+    </div>
+    <div class="field">
+      <label>Category Image URL (or Emoji Icon)</label>
+      <input type="text" id="catImg" placeholder="https://... or 💻">
+    </div>
+    <div class="btn-group">
+      <button onclick="saveCategory()">Save Category</button>
+      <a href="categories.html" class="btn-cancel">Cancel</a>
+    </div>
+  </div>
+
+</body>
+</html>
