@@ -1,21 +1,20 @@
-
+var DEFAULT_IMG = "https://via.placeholder.com/150";
 var productsList = [];
 var ordersList = [];
 
-
 function loadAdminDashboard() {
-  console.log("🚀 Loading Admin Dashboard Data...");
-  loadOrdersData();
   loadProductsData();
+  loadOrdersData();
   drawCategories();
   listenToRealtimeOrders();
 }
 
-
 function loadProductsData() {
+  if (typeof db === 'undefined') return;
+
   db.from('products').select('*').order('id', { ascending: false }).then(function(res) {
     if (res.error) {
-      console.error("Error fetching products:", res.error);
+      alert("Error loading products: " + res.error.message);
       return;
     }
     productsList = res.data || [];
@@ -23,110 +22,6 @@ function loadProductsData() {
     calculateStats();
   });
 }
-
-
-function loadOrdersData() {
-  db.from('orders').select('*').order('id', { ascending: false }).then(function(res) {
-    if (res.error) {
-      console.error("Error fetching orders:", res.error);
-      return;
-    }
-    ordersList = res.data || [];
-    if (document.getElementById('ordersTableBody')) drawOrdersTable();
-    if (document.getElementById('recentOrdersBody')) drawRecentOrders();
-    calculateStats();
-  });
-}
-
-
-function listenToRealtimeOrders() {
-  db.channel('admin-live-orders')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, function() {
-      console.log("📦 New order activity detected!");
-      loadOrdersData();
-    })
-    .subscribe();
-}
-
-
- 
-function saveCategory() {
-  var nameEl = document.getElementById('catName');
-  var descEl = document.getElementById('catDesc');
-  var imgEl = document.getElementById('catImg');
-
-  var name = nameEl ? nameEl.value.trim() : "";
-  var desc = descEl ? descEl.value.trim() : "";
-  var img = imgEl ? imgEl.value.trim() : "";
-
-  if (!name) return alert("Category Name zaroori hai!");
-
-  db.from('categories').insert([{
-    name: name,
-    description: desc || ("Explore items in " + name),
-    image: img || "📦"
-  }]).then(function(res) {
-    if (res.error) {
-      alert("Error adding category: " + res.error.message);
-    } else {
-      alert("Category added successfully!");
-      window.location.href = "categories.html";
-    }
-  });
-}
-
- 
-function drawCategories() {
-  var catListDiv = document.getElementById('categoryAdminList');
-  if (!catListDiv) return;
-
-  db.from('categories').select('*').order('id', { ascending: false }).then(function(res) {
-    if (res.error) {
-      console.error("Error loading categories:", res.error);
-      catListDiv.innerHTML = '<span style="color:#f85149;">Error loading categories: ' + res.error.message + '</span>';
-      return;
-    }
-    var categories = res.data || [];
-    
-    catListDiv.innerHTML = '';
-    if (categories.length === 0) {
-      catListDiv.innerHTML = '<span style="color:#8b949e;">No categories added yet. Click "+ Add New Category" above!</span>';
-      return;
-    }
-
-    for (var i = 0; i < categories.length; i++) {
-      var c = categories[i];
-      var imgIcon = (c.image && c.image.startsWith('http')) 
-        ? '<img src="' + c.image + '" class="cat-icon">' 
-        : '<div class="cat-icon">' + (c.image || '📦') + '</div>';
-
-      catListDiv.innerHTML += '<div class="cat-item">' +
-        '<div class="cat-item-left">' +
-          imgIcon +
-          '<div>' +
-            '<strong style="color:#fff; display:block;">' + c.name + '</strong>' +
-            '<small style="color:#8b949e;">' + (c.description || '') + '</small>' +
-          '</div>' +
-        '</div>' +
-        '<button class="delete-btn" onclick="deleteCategory(' + c.id + ')">Delete</button>' +
-      '</div>';
-    }
-  });
-}
-
-
-function deleteCategory(id) {
-  if (confirm("Are you sure you want to delete this category?")) {
-    db.from('categories').delete().eq('id', id).then(function(res) {
-      if (res.error) {
-        alert("Failed to delete category: " + res.error.message);
-      } else {
-        drawCategories();
-      }
-    });
-  }
-}
-
 
 function drawAdminTable() {
   var tbody = document.getElementById('adminTableBody');
@@ -149,90 +44,115 @@ function drawAdminTable() {
       "<td>$" + parseFloat(item.price || 0).toFixed(2) + "</td>" +
       "<td>" + (item.stock || 0) + "</td>" +
       "<td>" +
-        "<a style='color:#58a6ff; cursor:pointer; font-weight:600; margin-right:15px;' onclick='editProduct(" + item.id + ")'>Edit</a>" +
-        "<a style='color:#f85149; cursor:pointer; font-weight:600;' onclick='deleteProduct(" + item.id + ")'>Delete</a>" +
+        "<a style='color:#58a6ff; cursor:pointer; font-weight:600; margin-right:15px;' onclick='editProduct(\"" + item.id + "\")'>Edit</a>" +
+        "<a style='color:#f85149; cursor:pointer; font-weight:600;' onclick='deleteProduct(\"" + item.id + "\")'>Delete</a>" +
       "</td>" +
     "</tr>";
   }
 }
 
+window.deleteProduct = function(id) {
+  if (!confirm("Are you sure you want to delete this product?")) return;
 
-function drawOrdersTable() {
-  var tbody = document.getElementById('ordersTableBody');
-  if (!tbody) return;
-  tbody.innerHTML = "";
+  db.from('products').delete().eq('id', id).then(function(res) {
+    if (res.error) {
+      alert("Delete failed: " + res.error.message);
+    } else {
+      alert("Product deleted successfully!");
+      loadProductsData();
+    }
+  });
+};
 
-  if (ordersList.length === 0) {
-    tbody.innerHTML = "<tr><td colspan='8' style='text-align:center; padding:20px; color:#8b949e;'>No orders received yet.</td></tr>";
+window.editProduct = function(id) {
+  var product = productsList.find(function(p) { return p.id == id; });
+  if (!product) {
+    alert("Product not found!");
     return;
   }
 
-  for (var i = 0; i < ordersList.length; i++) {
-    var o = ordersList[i];
-    tbody.innerHTML += "<tr>" +
-      "<td><b>#" + o.id + "</b></td>" +
-      "<td><b>" + (o.customer_name || 'Guest') + "</b><br><small style='color:#8b949e;'>" + (o.customer_email || 'N/A') + "</small></td>" +
-      "<td>" + (o.customer_phone || 'N/A') + "<br><small style='color:#8b949e;'>" + (o.shipping_address || 'No address provided') + "</small></td>" +
-      "<td>" + (o.product_title || 'Multiple Items') + "</td>" +
-      "<td>" + (o.payment_method || 'COD') + "</td>" +
-      "<td><b>$" + parseFloat(o.amount || 0).toFixed(2) + "</b></td>" +
-      "<td><span style='padding:4px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold; background:#1e293b; color:#38bdf8;'>" + (o.status || 'Pending') + "</span></td>" +
-      "<td>" +
-        "<select onchange='updateOrderStatus(" + o.id + ", this.value)' style='padding:4px 8px; background:#0d1117; color:#fff; border:1px solid #30363d; border-radius:6px; cursor:pointer;'>" +
-          "<option value='Pending' " + (o.status=='Pending'?'selected':'') + ">Pending</option>" +
-          "<option value='Shipped' " + (o.status=='Shipped'?'selected':'') + ">Shipped</option>" +
-          "<option value='Delivered' " + (o.status=='Delivered'?'selected':'') + ">Delivered</option>" +
-          "<option value='Cancelled' " + (o.status=='Cancelled'?'selected':'') + ">Cancelled</option>" +
-        "</select>" +
-      "</td>" +
-    "</tr>";
-  }
-}
+  var newTitle = prompt("Update Product Title:", product.title);
+  if (newTitle === null) return;
 
+  var newPrice = prompt("Update Product Price ($):", product.price);
+  if (newPrice === null) return;
 
-function drawRecentOrders() {
-  var tbody = document.getElementById('recentOrdersBody');
-  if (!tbody) return;
-  tbody.innerHTML = "";
+  var newStock = prompt("Update Product Stock:", product.stock);
+  if (newStock === null) return;
 
-  if (ordersList.length === 0) {
-    tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:15px; color:#8b949e;'>No recent orders available.</td></tr>";
-    return;
-  }
+  var newCategory = prompt("Update Category:", product.category || "General");
+  if (newCategory === null) return;
 
-  var limit = Math.min(ordersList.length, 5);
-  for (var i = 0; i < limit; i++) {
-    var o = ordersList[i];
-    tbody.innerHTML += "<tr>" +
-      "<td><b>#" + o.id + "</b></td>" +
-      "<td>" + (o.customer_name || 'Customer') + "</td>" +
-      "<td>" + (o.product_title || 'Product') + "</td>" +
-      "<td><b>$" + parseFloat(o.amount || 0).toFixed(2) + "</b></td>" +
-      "<td><span style='padding:4px 8px; border-radius:10px; font-size:0.75rem; background:#1e293b; color:#38bdf8;'>" + (o.status || 'Pending') + "</span></td>" +
-    "</tr>";
-  }
-}
+  var newImage = prompt("Update Image URL:", product.image || "");
+  if (newImage === null) return;
 
+  db.from('products').update({
+    title: newTitle.trim(),
+    price: parseFloat(newPrice) || 0,
+    stock: parseInt(newStock) || 0,
+    category: newCategory.trim(),
+    image: newImage.trim()
+  }).eq('id', id).then(function(res) {
+    if (res.error) {
+      alert("Update failed: " + res.error.message);
+    } else {
+      alert("Product updated successfully!");
+      loadProductsData();
+    }
+  });
+};
 
-function updateOrderStatus(orderId, newStatus) {
-  db.from('orders').update({ status: newStatus }).eq('id', orderId).then(function(res) {
-    if (res.error) alert("Failed to update status: " + res.error.message);
-    else loadOrdersData();
+function loadOrdersData() {
+  if (typeof db === 'undefined') return;
+  db.from('orders').select('*').order('id', { ascending: false }).then(function(res) {
+    if (res.error) return;
+    ordersList = res.data || [];
+    if (document.getElementById('ordersTableBody')) drawOrdersTable();
+    if (document.getElementById('recentOrdersBody')) drawRecentOrders();
+    calculateStats();
   });
 }
 
+function listenToRealtimeOrders() {
+  if (typeof db === 'undefined') return;
+  db.channel('admin-live-orders')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, function() {
+      loadOrdersData();
+    })
+    .subscribe();
+}
+
+function drawCategories() {
+  var catListDiv = document.getElementById('categoryAdminList');
+  if (!catListDiv || typeof db === 'undefined') return;
+
+  db.from('categories').select('*').order('id', { ascending: false }).then(function(res) {
+    if (res.error) return;
+    var categories = res.data || [];
+    catListDiv.innerHTML = '';
+
+    for (var i = 0; i < categories.length; i++) {
+      var c = categories[i];
+      catListDiv.innerHTML += '<div class="cat-item"><span>' + c.name + '</span><button onclick="deleteCategory(\'' + c.id + '\')">Delete</button></div>';
+    }
+  });
+}
+
+function deleteCategory(id) {
+  if (confirm("Delete category?")) {
+    db.from('categories').delete().eq('id', id).then(function() {
+      drawCategories();
+    });
+  }
+}
 
 function calculateStats() {
   var totalRevenue = 0;
   var pendingCount = 0;
 
   for (var i = 0; i < ordersList.length; i++) {
-    if (ordersList[i].status !== 'Cancelled') {
-      totalRevenue += parseFloat(ordersList[i].amount || 0);
-    }
-    if (ordersList[i].status === 'Pending') {
-      pendingCount++;
-    }
+    if (ordersList[i].status !== 'Cancelled') totalRevenue += parseFloat(ordersList[i].amount || 0);
+    if (ordersList[i].status === 'Pending') pendingCount++;
   }
 
   if (document.getElementById('statRevenue')) document.getElementById('statRevenue').innerText = "$" + totalRevenue.toFixed(2);

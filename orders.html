@@ -2,47 +2,202 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin - Orders Tracker</title>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase.js"></script>
-  <script src="js/admin.js"></script>
+
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     body { background: #0d1117; color: #c9d1d9; display: flex; min-height: 100vh; }
-    .sidebar { width: 240px; background: #090d11; border-right: 1px solid #30363d; padding: 20px; flex-shrink: 0; }
-    .sidebar h2 { color: #fff; margin-bottom: 30px; font-size: 1.2rem; }
-    .sidebar a { display: block; color: #c9d1d9; text-decoration: none; padding: 10px 12px; margin-bottom: 6px; border-radius: 6px; }
-    .sidebar a.active { background: #2563eb; color: #fff; }
-    .content { flex: 1; padding: 30px; }
-    table { width: 100%; border-collapse: collapse; background: #161b22; border: 1px solid #30363d; border-radius: 8px; margin-top:20px; }
-    th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #30363d; font-size: 0.85rem; }
-    th { background: #1f242d; color: #fff; }
+
+    .sidebar { width: 260px; background: #161b22; border-right: 1px solid #30363d; padding: 25px 20px; display: flex; flex-direction: column; justify-content: space-between; }
+    .sidebar h2 { color: #fff; font-size: 1.3rem; font-weight: 700; margin-bottom: 30px; }
+    .nav-links { list-style: none; }
+    .nav-links li { margin-bottom: 8px; }
+    .nav-links a { color: #8b949e; text-decoration: none; padding: 12px 16px; border-radius: 8px; display: block; font-weight: 500; transition: all 0.2s; }
+    .nav-links a:hover, .nav-links a.active { background: #1f6beb; color: #fff; font-weight: 600; }
+
+    .btn-logout { background: #21262d; color: #f85149; border: 1px solid #30363d; padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; width: 100%; transition: background 0.2s; text-align: left; margin-top: auto; }
+    .btn-logout:hover { background: #b62324; color: #fff; }
+
+    .main-content { flex: 1; padding: 40px; overflow-y: auto; }
+    .main-content h2 { color: #fff; font-size: 1.6rem; font-weight: 700; margin-bottom: 25px; }
+
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { border-bottom: 1px solid #30363d; color: #8b949e; padding: 12px 15px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    td { padding: 14px 15px; border-bottom: 1px solid #21262d; color: #c9d1d9; font-size: 0.9rem; vertical-align: middle; }
+
+    .status-select { background: #0d1117; border: 1px solid #30363d; color: #58a6ff; padding: 6px 10px; border-radius: 6px; font-weight: 600; outline: none; cursor: pointer; }
+    .btn-delete { background: none; border: none; color: #f85149; cursor: pointer; font-weight: 600; margin-left: 10px; }
   </style>
 </head>
 <body>
+
   <div class="sidebar">
-    <h2>Admin Panel</h2>
-    <a href="index.html">📊 Dashboard</a>
-    <a href="products.html">📦 Products</a>
-    <a href="categories.html">🏷️ Categories</a>
-    <a href="orders.html" class="active">🛒 Orders Tracker</a>
+    <div>
+      <h2>Admin Panel</h2>
+      <ul class="nav-links">
+        <li><a href="index.html">📊 Dashboard</a></li>
+        <li><a href="products.html">📦 Products</a></li>
+        <li><a href="categories.html">🏷️ Categories</a></li>
+        <li><a href="orders.html" class="active">🛒 Orders Tracker</a></li>
+      </ul>
+    </div>
+    <button class="btn-logout" type="button" onclick="logoutAdmin()">🚪 Logout</button>
   </div>
 
-  <div class="content">
-    <h2 style="color:#fff;">Customer Orders Tracker</h2>
-    <table>
-      <thead>
-        <tr><th>ID</th><th>Customer</th><th>Phone & Address</th><th>Items</th><th>Payment</th><th>Total</th><th>Status</th><th>Action</th></tr>
-      </thead>
-      <tbody id="ordersTableBody"></tbody>
-    </table>
+  <div class="main-content">
+    <h2>Customer Orders Tracker</h2>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Customer</th>
+            <th>Phone & Address</th>
+            <th>Items</th>
+            <th>Payment</th>
+            <th>Total</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="ordersTableBody">
+          <tr>
+            <td colspan="8" style="text-align:center; padding: 25px; color: #8b949e;">Fetching live database orders...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <script>
-    window.onload = function() {
-      verifyAdminSession();
-      loadOrdersData();
-      listenToRealtimeOrders();
+    document.addEventListener("DOMContentLoaded", function() {
+      fetchOrders();
+    });
+
+    function logoutAdmin() {
+      localStorage.removeItem('adminLoggedIn');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('sb-token');
+
+      const loginURL = 'https://tech-core-shop.netlify.app/login.html';
+
+      if (typeof db !== 'undefined' && db.auth) {
+        db.auth.signOut().then(() => {
+          window.location.href = loginURL;
+        });
+      } else {
+        window.location.href = loginURL;
+      }
+    }
+
+    function fetchOrders() {
+      const tbody = document.getElementById('ordersTableBody');
+
+      if (typeof db === 'undefined') {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#f85149; padding:20px;">Database object missing!</td></tr>';
+        return;
+      }
+
+      db.from('orders').select('*').order('id', { ascending: false }).then(res => {
+        if (res.error) {
+          tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#f85149; padding:20px;">Error: ${res.error.message}</td></tr>`;
+          return;
+        }
+
+        const orders = res.data || [];
+        if (orders.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 25px; color: #8b949e;">No orders placed yet.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = '';
+        orders.forEach(order => {
+          // Customer Name & Email fallbacks
+          const customerName = order.customer_name || order.name || order.full_name || order.user_name || 'Guest User';
+          const customerEmail = order.email || order.user_email || order.customer_email || '';
+          
+          // Phone fallbacks (Checks all possible column names)
+          const phone = order.phone || order.phone_number || order.contact || order.mobile || order.customer_phone || order.user_phone || 'N/A';
+          
+          // Address fallbacks
+          const address = order.address || order.shipping_address || order.delivery_address || order.city || 'N/A';
+          
+          // Payment fallbacks
+          const payment = order.payment_method || order.payment || order.pay_method || 'Cash on Delivery';
+          const totalVal = order.total || order.total_amount || order.price || order.amount || 0;
+
+          // Items fallbacks (Handles arrays, objects, and strings)
+          let itemsText = 'N/A';
+          let rawItems = order.items || order.cart || order.products || order.order_items || order.cart_items;
+          
+          if (typeof rawItems === 'string') {
+            try { rawItems = JSON.parse(rawItems); } catch(e){}
+          }
+
+          if (Array.isArray(rawItems)) {
+            itemsText = rawItems.map(i => {
+              if (typeof i === 'string') return i;
+              const name = i.title || i.name || i.product_name || i.item_name || 'Item';
+              const qty = i.quantity || i.qty || i.count || 1;
+              return `${name} (x${qty})`;
+            }).join(', ');
+          } else if (rawItems && typeof rawItems === 'object') {
+            if (rawItems.title || rawItems.name) {
+              itemsText = `${rawItems.title || rawItems.name} (x${rawItems.quantity || 1})`;
+            } else {
+              itemsText = JSON.stringify(rawItems);
+            }
+          } else if (rawItems) {
+            itemsText = String(rawItems);
+          }
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><b>#${order.id}</b></td>
+            <td><b>${customerName}</b><br><small style="color:#8b949e;">${customerEmail}</small></td>
+            <td><b>${phone}</b><br><small style="color:#8b949e; display:block; max-width:180px;">${address}</small></td>
+            <td style="max-width: 200px; word-break: break-word;">${itemsText}</td>
+            <td>${payment}</td>
+            <td><b style="color:#58a6ff;">$${parseFloat(totalVal).toFixed(2)}</b></td>
+            <td>
+              <select class="status-select" onchange="updateOrderStatus('${order.id}', this.value)">
+                <option value="Pending" ${order.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                <option value="Shipped" ${order.status === 'Shipped' ? 'selected' : ''}>Shipped</option>
+                <option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+                <option value="Cancelled" ${order.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+              </select>
+            </td>
+            <td>
+              <button class="btn-delete" onclick="deleteOrder('${order.id}')">Delete</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      });
+    }
+
+    window.updateOrderStatus = function(id, newStatus) {
+      db.from('orders').update({ status: newStatus }).eq('id', id).then(res => {
+        if (res.error) alert("Status Update Failed: " + res.error.message);
+        else alert("Order status updated!");
+      });
+    };
+
+    window.deleteOrder = function(id) {
+      if (!confirm("Are you sure you want to delete this order?")) return;
+      db.from('orders').delete().eq('id', id).then(res => {
+        if (res.error) alert("Delete Error: " + res.error.message);
+        else {
+          alert("Order deleted!");
+          fetchOrders();
+        }
+      });
     };
   </script>
 </body>

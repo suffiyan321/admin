@@ -2,53 +2,178 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin - Add Product</title>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase.js"></script>
-  <script src="js/admin.js"></script>
+
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     body { background: #0d1117; color: #c9d1d9; display: flex; min-height: 100vh; }
-    .sidebar { width: 240px; background: #090d11; border-right: 1px solid #30363d; padding: 20px; flex-shrink: 0; }
-    .sidebar h2 { color: #fff; margin-bottom: 30px; font-size: 1.2rem; }
-    .sidebar a { display: block; color: #c9d1d9; text-decoration: none; padding: 10px 12px; margin-bottom: 6px; border-radius: 6px; }
-    .sidebar a.active { background: #2563eb; color: #fff; }
-    .content { flex: 1; padding: 30px; }
-    .form-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 25px; max-width: 600px; }
-    .form-group { margin-bottom: 15px; }
-    label { display: block; margin-bottom: 6px; font-size: 0.85rem; font-weight: 600; }
-    input, textarea { width: 100%; padding: 10px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #fff; outline: none; }
+
+    .sidebar { width: 260px; background: #161b22; border-right: 1px solid #30363d; padding: 25px 20px; display: flex; flex-direction: column; justify-content: space-between; }
+    .sidebar h2 { color: #fff; font-size: 1.3rem; font-weight: 700; margin-bottom: 30px; }
+    .nav-links { list-style: none; }
+    .nav-links li { margin-bottom: 8px; }
+    .nav-links a { color: #8b949e; text-decoration: none; padding: 12px 16px; border-radius: 8px; display: block; font-weight: 500; transition: all 0.2s; }
+    .nav-links a:hover, .nav-links a.active { background: #1f6beb; color: #fff; font-weight: 600; }
+
+    .btn-logout { background: #21262d; color: #f85149; border: 1px solid #30363d; padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; width: 100%; transition: background 0.2s; text-align: left; margin-top: auto; }
+    .btn-logout:hover { background: #b62324; color: #fff; }
+
+    .main-content { flex: 1; padding: 40px; overflow-y: auto; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+    .topbar h2 { color: #fff; font-size: 1.6rem; font-weight: 700; }
+
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 25px; max-width: 700px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+    .card h3 { color: #fff; font-size: 1.2rem; margin-bottom: 20px; }
+
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; color: #8b949e; margin-bottom: 8px; font-size: 0.9rem; font-weight: 600; }
+    .form-control { width: 100%; background: #0d1117; border: 1px solid #30363d; padding: 12px 15px; border-radius: 8px; color: #fff; outline: none; font-size: 0.95rem; }
+    .form-control:focus { border-color: #58a6ff; }
+    textarea.form-control { resize: vertical; min-height: 100px; }
+
+    .form-row { display: flex; gap: 15px; }
+    .form-row .form-group { flex: 1; }
+
+    .btn-actions { display: flex; gap: 15px; margin-top: 25px; }
+    .btn-submit { background: #238636; color: #fff; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    .btn-submit:hover { background: #2ea043; }
+    .btn-cancel { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; padding: 12px 20px; border-radius: 8px; font-weight: 600; text-decoration: none; display: inline-block; }
+    .btn-cancel:hover { background: #30363d; }
   </style>
 </head>
 <body>
+
   <div class="sidebar">
-    <h2>Admin Panel</h2>
-    <a href="index.html">📊 Dashboard</a>
-    <a href="products.html">📦 Products</a>
-    <a href="add-product.html" class="active">➕ Add Product</a>
-    <a href="categories.html">🏷️ Categories</a>
-    <a href="orders.html">🛒 Orders</a>
+    <div>
+      <h2>Admin Panel</h2>
+      <ul class="nav-links">
+        <li><a href="index.html">📊 Dashboard</a></li>
+        <li><a href="products.html" class="active">📦 Products</a></li>
+        <li><a href="categories.html">🏷️ Categories</a></li>
+        <li><a href="orders.html">🛒 Orders Tracker</a></li>
+      </ul>
+    </div>
+    <button class="btn-logout" type="button" onclick="logoutAdmin()">🚪 Logout</button>
   </div>
 
-  <div class="content">
-    <h2 style="color:#fff; margin-bottom:20px;" id="formTitle">Add New Product</h2>
-    <div class="form-card">
-      <input type="hidden" id="pId">
-      <div class="form-group"><label>Product Title</label><input type="text" id="pTitle" placeholder="Title"></div>
-      <div class="form-group"><label>Category</label><input type="text" id="pCategory" placeholder="e.g. Electronics"></div>
-      <div class="form-group"><label>Price ($)</label><input type="number" id="pPrice" placeholder="0.00"></div>
-      <div class="form-group"><label>Stock</label><input type="number" id="pStock" placeholder="10"></div>
-      <div class="form-group"><label>Image URL</label><input type="text" id="pImage" placeholder="https://..."></div>
-      <div class="form-group"><label>Description</label><textarea id="pDesc" rows="4"></textarea></div>
-      <button onclick="saveProduct()" style="background:#2563eb; color:#fff; border:none; padding:10px 20px; border-radius:6px; font-weight:bold; cursor:pointer;">Save Product</button>
+  <div class="main-content">
+    <div class="topbar">
+      <h2>Add New Product</h2>
+    </div>
+
+    <div class="card">
+      <h3>Product Details</h3>
+      <form id="addProductForm" onsubmit="saveProduct(event)">
+        <div class="form-group">
+          <label for="pTitle">Product Title</label>
+          <input type="text" id="pTitle" class="form-control" placeholder="e.g. Wireless Gaming Mouse" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="pPrice">Price ($)</label>
+            <input type="number" step="0.01" id="pPrice" class="form-control" placeholder="e.g. 49.99" required>
+          </div>
+          <div class="form-group">
+            <label for="pStock">Stock Quantity</label>
+            <input type="number" id="pStock" class="form-control" value="10" placeholder="e.g. 10" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="pCategory">Category</label>
+          <input type="text" id="pCategory" class="form-control" placeholder="e.g. Accessories">
+        </div>
+
+        <div class="form-group">
+          <label for="pImg">Image URL</label>
+          <input type="text" id="pImg" class="form-control" placeholder="https://example.com/image.jpg">
+        </div>
+
+        <div class="form-group">
+          <label for="pDesc">Description</label>
+          <textarea id="pDesc" class="form-control" placeholder="Write product description here..."></textarea>
+        </div>
+
+        <div class="btn-actions">
+          <button type="submit" id="btnSubmit" class="btn-submit">Save Product</button>
+          <a href="products.html" class="btn-cancel">Cancel</a>
+        </div>
+      </form>
     </div>
   </div>
 
   <script>
-    window.onload = function() {
-      verifyAdminSession();
-      checkEditParam();
-    };
+    // 🚪 Logout Functionality
+    function logoutAdmin() {
+      localStorage.removeItem('adminLoggedIn');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('sb-token');
+
+      const loginURL = 'https://tech-core-shop.netlify.app/login.html';
+
+      if (typeof db !== 'undefined' && db.auth) {
+        db.auth.signOut().then(() => {
+          window.location.href = loginURL;
+        });
+      } else {
+        window.location.href = loginURL;
+      }
+    }
+
+    // 💾 Save Product to Supabase
+    async function saveProduct(event) {
+      event.preventDefault();
+
+      const btn = document.getElementById('btnSubmit');
+      btn.disabled = true;
+      btn.innerText = "Saving...";
+
+      const title = document.getElementById('pTitle').value.trim();
+      const price = parseFloat(document.getElementById('pPrice').value);
+      const stock = parseInt(document.getElementById('pStock').value) || 10;
+      const category = document.getElementById('pCategory').value.trim();
+      const image = document.getElementById('pImg').value.trim();
+      const description = document.getElementById('pDesc').value.trim();
+
+      if (!title || isNaN(price)) {
+        alert("Please enter a valid Title and Price.");
+        btn.disabled = false;
+        btn.innerText = "Save Product";
+        return;
+      }
+
+      if (typeof db === 'undefined') {
+        alert("Database connection error!");
+        btn.disabled = false;
+        btn.innerText = "Save Product";
+        return;
+      }
+
+      const payload = {
+        title: title,
+        price: price,
+        stock: stock,
+        category: category || 'General',
+        image: image || 'https://via.placeholder.com/150',
+        description: description || ''
+      };
+
+      const { data, error } = await db.from('products').insert([payload]);
+
+      if (error) {
+        alert("Error saving product: " + error.message);
+        btn.disabled = false;
+        btn.innerText = "Save Product";
+      } else {
+        alert("Product Added Successfully!");
+        window.location.href = 'products.html';
+      }
+    }
   </script>
 </body>
 </html>

@@ -2,51 +2,258 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Admin - Products</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Products - TechCore Admin</title>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase.js"></script>
-  <script src="js/admin.js"></script>
+
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     body { background: #0d1117; color: #c9d1d9; display: flex; min-height: 100vh; }
-    .sidebar { width: 240px; background: #090d11; border-right: 1px solid #30363d; padding: 20px; flex-shrink: 0; }
-    .sidebar h2 { color: #fff; margin-bottom: 30px; font-size: 1.2rem; }
-    .sidebar a { display: block; color: #c9d1d9; text-decoration: none; padding: 10px 12px; margin-bottom: 6px; border-radius: 6px; }
-    .sidebar a.active { background: #2563eb; color: #fff; }
-    .content { flex: 1; padding: 30px; }
-    table { width: 100%; border-collapse: collapse; background: #161b22; border: 1px solid #30363d; border-radius: 8px; margin-top: 20px; }
-    th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #30363d; font-size: 0.9rem; }
-    th { background: #1f242d; color: #fff; }
+
+    .sidebar { width: 260px; background: #161b22; border-right: 1px solid #30363d; padding: 25px 20px; display: flex; flex-direction: column; justify-content: space-between; }
+    .sidebar h2 { color: #58a6ff; font-size: 1.4rem; font-weight: 700; margin-bottom: 30px; letter-spacing: 0.5px; }
+    .nav-links { list-style: none; }
+    .nav-links li { margin-bottom: 8px; }
+    .nav-links a { color: #8b949e; text-decoration: none; padding: 12px 16px; border-radius: 8px; display: block; font-weight: 500; transition: all 0.2s; }
+    .nav-links a:hover, .nav-links a.active { background: #21262d; color: #58a6ff; font-weight: 600; }
+
+    .main-content { flex: 1; padding: 40px; overflow-y: auto; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 35px; border-bottom: 1px solid #30363d; padding-bottom: 20px; }
+    .topbar h2 { color: #fff; font-size: 1.6rem; font-weight: 700; }
+
+    .btn-add { background: #238636; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-block; transition: background 0.2s; }
+    .btn-add:hover { background: #2ea043; }
+
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .card-header h3 { color: #fff; font-size: 1.3rem; font-weight: 600; }
+
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { border-bottom: 1px solid #30363d; color: #8b949e; padding: 12px 15px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    td { padding: 14px 15px; border-bottom: 1px solid #21262d; color: #c9d1d9; font-size: 0.92rem; vertical-align: middle; }
+
+    .action-btn { background: none; border: none; cursor: pointer; font-weight: 600; font-size: 0.95rem; margin-right: 12px; }
+    .btn-edit-act { color: #58a6ff; }
+    .btn-delete-act { color: #f85149; }
+
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.8); display: none; justify-content: center; align-items: center; z-index: 99999; }
+    .modal-content { background: #161b22; border: 1px solid #30363d; border-radius: 12px; width: 90%; max-width: 480px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #30363d; padding-bottom: 12px; }
+    .modal-header h3 { color: #fff; font-size: 1.25rem; }
+    .close-btn { background: none; border: none; color: #8b949e; font-size: 1.5rem; cursor: pointer; }
+
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; color: #8b949e; margin-bottom: 6px; font-size: 0.85rem; font-weight: 600; }
+    .form-group input { width: 100%; padding: 10px 12px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #fff; font-size: 0.9rem; outline: none; }
+    .form-group input:focus { border-color: #58a6ff; }
+    
+    .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    .btn-save { background: #238636; color: #fff; border: none; padding: 10px 18px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    .btn-save:hover { background: #2ea043; }
+    .btn-cancel { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; padding: 10px 18px; border-radius: 6px; font-weight: 600; cursor: pointer; }
   </style>
 </head>
 <body>
+
   <div class="sidebar">
-    <h2>Admin Panel</h2>
-    <a href="index.html">📊 Dashboard</a>
-    <a href="products.html" class="active">📦 Products</a>
-    <a href="add-product.html">➕ Add Product</a>
-    <a href="categories.html">🏷️ Categories</a>
-    <a href="orders.html">🛒 Orders</a>
+    <div>
+      <h2>Admin Panel</h2>
+      <ul class="nav-links">
+        <li><a href="index.html">📊 Dashboard</a></li>
+        <li><a href="products.html" class="active">📦 Products</a></li>
+        <li><a href="categories.html">🏷️ Categories</a></li>
+        <li><a href="orders.html">🛒 Order Tracker</a></li>
+      </ul>
+    </div>
   </div>
 
-  <div class="content">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-      <h2 style="color:#fff;">Products List</h2>
-      <a href="add-product.html" style="background:#2563eb; color:#fff; padding:8px 16px; border-radius:6px; text-decoration:none; font-weight:600;">+ Add New Product</a>
+  <div class="main-content">
+    <div class="topbar">
+      <h2>Products Management</h2>
     </div>
 
-    <table>
-      <thead>
-        <tr><th>Image</th><th>Title</th><th>Category</th><th>Price</th><th>Stock</th><th>Actions</th></tr>
-      </thead>
-      <tbody id="adminTableBody"></tbody>
-    </table>
+    <div class="card">
+      <div class="card-header">
+        <h3>Products List</h3>
+        <a href="add-product.html" class="btn-add">+ Add New Product</a>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Image</th>
+            <th>Title</th>
+            <th>Category</th>
+            <th>Price</th>
+            <th>Stock</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="adminTableBody">
+          <tr>
+            <td colspan="6" style="text-align:center; padding: 25px; color: #8b949e;">Loading products...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- POPUP EDIT FORM -->
+  <div id="editModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Edit Product</h3>
+        <button type="button" class="close-btn" onclick="closeModal()">&times;</button>
+      </div>
+      <form id="editForm">
+        <input type="hidden" id="editId">
+        
+        <div class="form-group">
+          <label>Title</label>
+          <input type="text" id="editTitle" required>
+        </div>
+
+        <div class="form-group">
+          <label>Category</label>
+          <input type="text" id="editCategory" required>
+        </div>
+
+        <div class="form-group">
+          <label>Price ($)</label>
+          <input type="number" step="0.01" id="editPrice" required>
+        </div>
+
+        <div class="form-group">
+          <label>Stock</label>
+          <input type="number" id="editStock" required>
+        </div>
+
+        <div class="form-group">
+          <label>Image URL</label>
+          <input type="text" id="editImage">
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-save">Save Changes</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <script>
-    window.onload = function() {
-      verifyAdminSession();
-      loadProductsData();
+    let productsData = [];
+
+    // Screen load hote hi products fetch karo
+    document.addEventListener("DOMContentLoaded", function() {
+      loadProducts();
+
+      // Form Submit Event Handler
+      document.getElementById('editForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        saveChanges();
+      });
+    });
+
+    // Database se Products lana
+    function loadProducts() {
+      if (typeof db === 'undefined') {
+        alert("Database connection is missing. Please check js/supabase.js!");
+        return;
+      }
+
+      db.from('products').select('*').order('id', { ascending: false }).then(function(res) {
+        if (res.error) {
+          alert("Error: " + res.error.message);
+          return;
+        }
+        productsData = res.data || [];
+        renderTable();
+      });
+    }
+
+    // Table Build Karna
+    function renderTable() {
+      const tbody = document.getElementById('adminTableBody');
+      tbody.innerHTML = '';
+
+      if (productsData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">No products found in DB.</td></tr>';
+        return;
+      }
+
+      productsData.forEach(p => {
+        const tr = document.createElement('tr');
+        const img = p.image ? p.image : 'https://via.placeholder.com/150';
+        
+        tr.innerHTML = `
+          <td><img src="${img}" style="width:40px; height:40px; border-radius:6px; object-fit:cover;"></td>
+          <td><b>${p.title}</b></td>
+          <td>${p.category || 'General'}</td>
+          <td>$${parseFloat(p.price || 0).toFixed(2)}</td>
+          <td>${p.stock || 0}</td>
+          <td>
+            <button type="button" class="action-btn btn-edit-act" onclick="editProduct('${p.id}')">Edit</button>
+            <button type="button" class="action-btn btn-delete-act" onclick="deleteProduct('${p.id}')">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Modal Mein Data Purna Bharna
+    window.editProduct = function(id) {
+      const p = productsData.find(item => item.id == id);
+      if (!p) return alert("Product not found!");
+
+      document.getElementById('editId').value = p.id;
+      document.getElementById('editTitle').value = p.title || '';
+      document.getElementById('editCategory').value = p.category || '';
+      document.getElementById('editPrice').value = p.price || 0;
+      document.getElementById('editStock').value = p.stock || 0;
+      document.getElementById('editImage').value = p.image || '';
+
+      document.getElementById('editModal').style.display = 'flex';
+    };
+
+    window.closeModal = function() {
+      document.getElementById('editModal').style.display = 'none';
+    };
+
+    // Updated Data Database Mein Save Karna
+    function saveChanges() {
+      const id = document.getElementById('editId').value;
+      const title = document.getElementById('editTitle').value;
+      const category = document.getElementById('editCategory').value;
+      const price = parseFloat(document.getElementById('editPrice').value);
+      const stock = parseInt(document.getElementById('editStock').value);
+      const image = document.getElementById('editImage').value;
+
+      db.from('products').update({ title, category, price, stock, image }).eq('id', id).then(function(res) {
+        if (res.error) {
+          alert("Update Error: " + res.error.message);
+        } else {
+          alert("Product Updated Successfully!");
+          closeModal();
+          loadProducts();
+        }
+      });
+    }
+
+    // Delete Karna
+    window.deleteProduct = function(id) {
+      if (!confirm("Are you sure you want to delete this product?")) return;
+
+      db.from('products').delete().eq('id', id).then(function(res) {
+        if (res.error) {
+          alert("Delete Error: " + res.error.message);
+        } else {
+          alert("Product Deleted!");
+          loadProducts();
+        }
+      });
     };
   </script>
 </body>
